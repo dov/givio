@@ -4,7 +4,7 @@ Giv is an image and vector viewer available at http://github.com/dov/giv. This l
 
 # Contents
 
-For the python library see python. The main directory contains the c++ code.
+For the python library see the [python](./python/) directory. The main directory contains the c++ code.
 
 # Example
 

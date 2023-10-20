@@ -2,7 +2,7 @@
 
 This is a python module for reading and writing giv files.
 
-See file:example.py for example use.
+See [example.py](./example.py) for example use.
 
 # Installation
 
