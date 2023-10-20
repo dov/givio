@@ -1,3 +1,6 @@
 *~
 build
 *.giv
+/python/__pycache__/
+/python/dist/
+/python/givio.egg-info/
