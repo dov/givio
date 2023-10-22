@@ -12,7 +12,9 @@ giv = Giv('rect.giv')
 
 # Modify the attributes of the first dataset
 giv[0].attribs['color'] = 'green'
+giv[0].attribs.clear('balloon')
 giv[0].attribs['balloon'] = 'I am green'
+giv[0].attribs['balloon'] = 'I am also green'
 
 # Add a new dataset
 giv.add_dataset(
@@ -31,3 +33,4 @@ print(giv[1].get_points())
 
 # Save the result
 giv.save('rect-copy.giv')
+giv.show()

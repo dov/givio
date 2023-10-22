@@ -25,6 +25,10 @@ import copy
 import numpy as np
 import pandas as pd
 import re
+from collections import UserDict
+import os
+import tempfile
+from pathlib import Path
 
 # A point in giv is a line in a pandas datastructure containing the op code
 #
@@ -42,6 +46,11 @@ OP_CLOSEPATH=2
 #    columns = ('x','y')
 #    dtypes = ('f8','f8')
 #
+
+# Create a list of multi attribute. A multi-attribute can contain more
+# than one instance.
+multiattributes = set(['balloon','def_style','image'])
+
 
 def coords_to_points(coords, is_closed=True):
     '''Convert a coords dataframe into a points dataframe'''
@@ -76,11 +85,29 @@ def validate_points(points):
         points['op'] = points['op'].astype(np.int64)
     return points
 
+class GivAttr(UserDict):
+    def __init__(self, key_vals=None):
+        super().__init__()
+        if isinstance(key_vals,list):
+            for k,v in key_vals:
+                self.__setitem__(k,v)
+ 
+    def __setitem__(self, k, v):
+        if k in multiattributes:
+            super().__setitem__(k, self.get(k,[]) + [v])
+        else:
+            super().__setitem__(k,v)
+
+    def clear(self, k):
+        '''Multi attributes must be cleared'''
+        if k in multiattributes:
+            super().__setitem__(k, [])
+
 class DataSet:
     '''A DataSet contains a list of points and their attributes'''
     def __init__(self, points=None, attribs=None, coords = None, is_closed=True):
         '''Coords allows setting coordinates without the moveto lineto info'''
-        self.attribs = {}
+        self.attribs = GivAttr()
         self.points = points
         if coords is not None:
             self.points = coords_to_points(coords,is_closed=is_closed)
@@ -96,14 +123,18 @@ class DataSet:
     def save_to_fh(self, fh):
         if self.attribs is not None:
             for k,v in self.attribs.items():
-                fh.write(f'${k} {v}\n')
+                if isinstance(v, list):
+                    for w in v:
+                        fh.write(f'${k} {w}\n')
+                else:
+                    fh.write(f'${k} {v}\n')
         # This can probably be made faster
-        op_string = ['m','','z']
+        op_string = ['m ','','z ']
         for _,(op,x,y) in self.points.iterrows():
             if op==OP_CLOSEPATH:
                 fh.write('z\n')
             else:
-                fh.write(f'{op_string[int(op)]} {x} {y}\n')
+                fh.write(f'{op_string[int(op)]}{x} {y}\n')
         fh.write('\n\n')
   
     def copy(self):
@@ -128,6 +159,7 @@ class Giv:
         self.datasets = []
         if filename:
             self.parse_file(filename)
+        self.tempdir = tempfile.TemporaryDirectory()
     
     def __getitem__(self,index):
         return self.datasets[index]
@@ -135,18 +167,17 @@ class Giv:
     def __len__(self):
         return len(self.datasets)
   
-    def show(self):
-        # TBD - use tempfile                        
-        Filename = f'/tmp/givio{os.getpid()}.giv' 
-        with open(Filename,'w') as fh:
+    def show(self, name='givio.giv'):
+        filename = Path(self.tempdir.name) / name
+        with open(filename, 'w') as fh:
             self.save_to_fh(fh)
-        os.system(f'giv {Filename}')
+        os.system(f'giv {filename}')
   
     def add_dataset(self, dataset):
         self.datasets.append(dataset)
   
     def parse_file(self, filename):
-        attribs = {}
+        attribs = GivAttr()
         points = []
         with open(filename) as fh:
             for line in fh:
@@ -163,9 +194,11 @@ class Giv:
               if re.search(r'^\s*$', line):
                   if len(points):
                       self.add_dataset(
-                        DataSet(points=points, attribs=copy.deepcopy(Attribs)))
-                      # Attribs are sticky
-                      Points = []
+                        DataSet(points=points, attribs=copy.deepcopy(attribs)))
+
+                      # Clear attribs and points
+                      attribs = GivAttr()
+                      points = []
                   continue
               vals = line.split()
               op = vals[0][0].lower()
@@ -193,3 +226,12 @@ class Giv:
         with open(filename,mode) as fh:
             self.save_to_fh(fh)
         
+if __name__ == '__main__':
+    a = GivAttr()
+    a['foo'] = 52
+    a['bar'] = 55
+    print('after foo bar')
+    a['balloon'] = 10
+    a['balloon'] = 20
+    print('after balloon')
+    print(a)

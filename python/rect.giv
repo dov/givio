@@ -1,4 +1,6 @@
 $color red
+$balloon balloon 1
+$balloon balloon 2
 0 0
 200 0
 200 150
