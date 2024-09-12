@@ -51,6 +51,12 @@ OP_CLOSEPATH=2
 # than one instance.
 multiattributes = set(['balloon','def_style','image'])
 
+def rect_to_points(x, y, w, h):
+    return coords_to_points([
+        [x,y],
+        [x+w,y],
+        [x+w,y+h],
+        [x,y+h]], is_closed=True)
 
 def coords_to_points(coords, is_closed=True):
     '''Convert a coords dataframe into a points dataframe'''
